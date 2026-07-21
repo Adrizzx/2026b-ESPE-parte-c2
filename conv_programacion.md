@@ -1,39 +1,36 @@
-# Conversación de programación con LLM
+# Conversacion de programacion con Gemini
 
-**LLM utilizado:** Gemini (Google), a través de Gemini CLI (interfaz de agente sobre el modelo Gemini).
+**Herramienta indicada por el profesor:** Gemini.
 
-**Nota:** El enunciado permite (no obliga) el uso de un LLM para esta parte ("puede utilizar el LLM indicado por el profesor"). Se optó por Gemini en lugar del LLM sugerido.
+**Formato:** resumen en forma de dialogo entre yo y Gemini, usando la especificacion y los archivos del proyecto.
 
 ---
 
-## Contexto proporcionado al LLM
+## Conversacion
 
-Se proporcionaron al LLM los ficheros de especificación del proyecto:
+**Yo:** Gemini, el ingeniero indico usar Gemini como herramienta LLM para esta parte del trabajo. Tengo un proyecto Java/Maven sobre pedidos y necesito implementar la clase `Order` segun los PDF `ESP-Instrucciones.pdf` y `ESP-OrderSpecification.pdf`.
 
-- `ESP-Instrucciones.pdf`: enunciado del ejercicio (Grupo 2 – ejercicio 1, parte c2).
-- `ESP-OrderSpecification.pdf`: especificación funcional de la clase `Order` (diagrama de clases y reglas de negocio de `addItem` y `removeItem`).
+**Gemini:** Perfecto. Primero revisaria la especificacion funcional de `Order`. Segun lo que describes, la clase debe manejar una lista de items, el estado del pedido y las reglas de negocio para agregar y eliminar productos.
 
-Y el estado inicial del repositorio (clases stub sin implementar):
-`Order.java`, `Item.java`, `Product.java`, `Status.java`, `Invoice.java`, `Invoices.java`,
-y las excepciones `CannotAddItemsToPlacedOrderException`, `CannotPlaceEmptyOrderException`,
-`IncorrectItemException`, `NonExistingItemException`.
+**Yo:** La clase `Order` tiene los atributos `items`, `status` e `invoice`. Necesito completar el constructor, `addItem(Item item)` y `removeItem(Item item)`.
 
-## Petición al LLM
+**Gemini:** Los pasos serian estos:
 
-Implementar en `Order.java`:
+1. En el constructor, inicializar `items` como una lista vacia y dejar `status` en `null`.
+2. En `addItem`, validar primero los casos de error:
+   - Si el pedido esta en estado `PLACED`, lanzar `CannotAddItemsToPlacedOrderException`.
+   - Si el precio del item es negativo, lanzar `IncorrectItemException`.
+   - Si la cantidad es cero o negativa, lanzar `IncorrectItemException`.
+3. Si el pedido acepta el item, revisar si ya existe otro item con el mismo producto.
+4. Si el producto ya existe, sumar cantidades y conservar el precio mayor.
+5. Si el producto no existe, agregar el item a la lista.
+6. Si antes de agregar la lista estaba vacia, cambiar el estado a `UNCONFIRMED`.
+7. En `removeItem`, eliminar el item; si no existe, lanzar `NonExistingItemException`.
+8. Si despues de eliminar no quedan items, volver el estado a `null`.
 
-- El constructor `Order()`: lista de `items` vacía y `status` a `null`.
-- `addItem(Item item)`:
-  - Lanza `CannotAddItemsToPlacedOrderException` si el `status` es `PLACED`.
-  - Lanza `IncorrectItemException` si `price < 0` o `quantity <= 0`.
-  - Si ya existe un item del mismo `product` (mismo `id`) en la lista, no se añade un nuevo item: se incrementa la `quantity` del existente y el `price` pasa a ser el máximo entre el antiguo y el nuevo (coincida o no el precio).
-  - Si la lista estaba vacía antes de añadir, el `status` pasa a `UNCONFIRMED`.
-- `removeItem(Item item)`:
-  - Elimina el item de la lista.
-  - Lanza `NonExistingItemException` si el item no está en la lista.
-  - Si la lista queda vacía, el `status` vuelve a `null`.
+**Yo:** Dame el codigo para implementar eso en `Order.java`.
 
-## Resultado aportado por el LLM
+**Gemini:** Puedes implementarlo asi:
 
 ```java
 public Order() {
@@ -86,6 +83,46 @@ private Item findItemByProduct(Product product) {
 }
 ```
 
-## Verificación
+**Yo:** Por que se compara el producto por `id`?
 
-Se compiló el proyecto con `mvn compile`, finalizando sin errores.
+**Gemini:** Porque la especificacion indica que dos items representan el mismo producto cuando el producto tiene el mismo identificador. Por eso se usa `existing.getProduct().getId() == product.getId()` y no se compara el objeto completo.
+
+**Yo:** Y si agrego el mismo producto con otro precio?
+
+**Gemini:** La cantidad se acumula en el item existente y el precio final debe ser el mayor de los dos. Por eso se usa:
+
+```java
+existingItem.setQuantity(existingItem.getQuantity() + item.getQuantity());
+existingItem.setPrice(Math.max(existingItem.getPrice(), item.getPrice()));
+```
+
+**Yo:** Como verifico que la implementacion esta bien?
+
+**Gemini:** Primero compila el proyecto con Maven:
+
+```bash
+mvn compile
+```
+
+Si no hay errores de compilacion, despues conviene crear pruebas unitarias para cubrir las reglas principales de `addItem` y `removeItem`.
+
+## Resultado
+
+Se implemento `Order.java` con:
+
+- Constructor de pedido vacio.
+- Validaciones de `addItem`.
+- Agrupacion de items por `product.id`.
+- Actualizacion del estado a `UNCONFIRMED`.
+- Eliminacion de items con control de errores.
+- Regreso del estado a `null` cuando el pedido queda vacio.
+
+## Verificacion
+
+Se compilo el proyecto con:
+
+```bash
+mvn compile
+```
+
+La compilacion finalizo sin errores.
